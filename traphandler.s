@@ -72,12 +72,6 @@ _NoGC_COLLECT:  .asciiz "Increasing heap...\n"
 .globl String.length
 .globl String.concat
 .globl String.substr
-.globl _MemMgr_Init
-.globl _MemMgr_Alloc
-.globl _MemMgr_QAlloc
-.globl _MemMgr_Test
-.globl _NoGC_Init
-.globl _NoGC_Collect
 
 .text
 
@@ -88,7 +82,7 @@ _NoGC_COLLECT:  .asciiz "Increasing heap...\n"
 #  Invoke the routine main with no arguments.                   #
 #################################################################
 main:
-  jal _MemMgr_Init     # sets gp and s7 (limit)
+  jal _NoGC_Init       # sets gp and s7 (limit)
   la a0, Main_protObj  # create the Main object
   jal Object.copy      # Call copy
   addi sp, sp, -4
@@ -756,51 +750,6 @@ _ss_abort:
 
 
 #################################################################
-#  MemMgr Memory Manager                                        #
-#                                                               #
-#  The following assumptions are made:                          #
-#                                                               #
-#  (1)                                                          #
-#  The allocation of memory involves incrementing               #
-#  the gp pointer.  The s11 pointer serves as a limit. The      #
-#  collector function is called before s11 is exceeded by gp.   #
-#                                                               #
-#  (2)                                                          #
-#  The initialization functions all take the same arguments as  #
-#  defined in "_MemMgr_Init".                                   #
-#                                                               #
-#  (3)                                                          #
-#  The garbage collector functions all take the arguments. "a0" #
-#  contains the end of the stack to check for pointers. "a1"    #
-#  contains the size in bytes needed by the program and must    #
-#  be preserved across the function call.                       #
-#                                                               #
-#  Initialize the Memory Manager                                #
-#                                                               #
-#  Call the initialization routine for the garbage collector.   #
-#                                                               #
-#  INPUT:                                                       #
-#  - a0: start of stack                                         #
-#  - a1: end of heap                                            #
-#  - heap_start: start of the heap                              #
-#                                                               #
-#  OUTPUT:                                                      #
-#  - gp: lower bound of the work area                           #
-#  - s11: upper bound of the work area                          #
-#                                                               #
-#  Registers modified:                                          #
-#  - initializer function                                       #
-#################################################################
-_MemMgr_Init:
-  addi sp, sp, -4
-  sw ra, 4(sp)                  # save return address
-  jal _NoGC_Init                # initialize
-  lw ra, 4(sp)                  # restore return address
-  addi sp, sp, 4
-  jr ra                         # return
-
-
-#################################################################
 #  Memory Allocation                                            #
 #                                                               #
 #  Allocates the requested amount of memory and returns a       #
@@ -915,18 +864,16 @@ _MemMgr_Test_end:
 #  - s11: upper bound of the work area                          #
 #                                                               #
 #  Registers modified:                                          #
-#  - a0, s11, t6                                                #
+#  - a0, s11                                                    #
 #################################################################
 _NoGC_Init:
   la gp, heap_start      # set gp to the start of the heap
-  mv t6, a1
   li a0, 9
   li a1, 0x10000         # allocate first 2^16 bytes
   ecall
   li a0, 9
   li a1, 0
   ecall                  # get heap end
-  mv a1, t6
   mv s11, a0             # set limit pointer
   jr ra
 
@@ -938,7 +885,7 @@ _NoGC_Init:
 #                                                               #
 #  INPUT:                                                       #
 #  - a1: size will need to allocate in bytes                    #
-#  - s11: limit pointer of thw work area                        #
+#  - s11: limit pointer of the work area                        #
 #  - gp: current allocation pointer                             #
 #                                                               #
 #  OUTPUT:                                                      #
