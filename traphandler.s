@@ -872,7 +872,7 @@ _NoGC_Init:
   li a0, 9
   li a1, 0x10000          # allocate first 2^16 bytes
   ecall
-  li a1, -1              
+  li a1, -1
   beq a0, a1, _NoGC_abort # No more heap space ?
   li a0, 9
   li a1, 0
