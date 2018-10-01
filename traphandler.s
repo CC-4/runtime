@@ -51,7 +51,8 @@ _objcopy_msg:   .asciiz "Object.copy: Invalid object size.\n"
 
 # Messages for the NoGC garabge collector
 
-_NoGC_COLLECT:  .asciiz "Increasing heap...\n"
+_NoGC_COLLECT:   .asciiz "Increasing heap...\n"
+_NoGC_abort_msg: .asciiz "\n[panic] Heap overflow!!!\n"
 
 .align 2
 
@@ -867,15 +868,23 @@ _MemMgr_Test_end:
 #  - a0, s11                                                    #
 #################################################################
 _NoGC_Init:
-  la gp, heap_start      # set gp to the start of the heap
+  la gp, heap_start       # set gp to the start of the heap
   li a0, 9
-  li a1, 0x10000         # allocate first 2^16 bytes
+  li a1, 0x10000          # allocate first 2^16 bytes
   ecall
+  li a1, -1              
+  beq a0, a1, _NoGC_abort # No more heap space ?
   li a0, 9
   li a1, 0
-  ecall                  # get heap end
-  mv s11, a0             # set limit pointer
+  ecall                   # get heap end
+  mv s11, a0              # set limit pointer
   jr ra
+_NoGC_abort:
+  la a1, _NoGC_abort_msg
+  li a0, 4
+  ecall
+  li a0, 10
+  ecall
 
 
 #################################################################
@@ -896,22 +905,30 @@ _NoGC_Init:
 #################################################################
 _NoGC_Collect:
   mv t6, a1
-  la a1, _NoGC_COLLECT           # show collection message
+  la a1, _NoGC_COLLECT            # show collection message
   li a0, 4
   ecall
   mv a1, t6
 _NoGC_Collect_loop:
-  add t0, gp, a1                 # test allocation
-  blt t0, s11, _NoGC_Collect_ok  # stop if enough
+  add t0, gp, a1                  # test allocation
+  blt t0, s11, _NoGC_Collect_ok   # stop if enough
   mv t6, a1
-  li a0, 9                       # expand heap
-  li a1, 0x10000                 # set the size to expand the heap
-  ecall                          # sbrk
-  li a0, 9                       # get heap end
+  li a0, 9                        # expand heap
+  li a1, 0x10000                  # set the size to expand the heap
+  ecall                           # sbrk
+  li a1, -1
+  beq a0, a1, _NoGC_Collect_abort # No more heap space ?
+  li a0, 9                        # get heap end
   mv a1, zero
-  ecall                          # sbrk
+  ecall                           # sbrk
   mv a1, t6
-  mv s11, a0                     # set limit pointer
-  j _NoGC_Collect_loop           # loop
+  mv s11, a0                      # set limit pointer
+  j _NoGC_Collect_loop            # loop
 _NoGC_Collect_ok:
-  jr ra                          # return
+  jr ra                           # return
+_NoGC_Collect_abort:
+  la a1, _NoGC_abort_msg
+  li a0, 4
+  ecall
+  li a0, 10
+  ecall
