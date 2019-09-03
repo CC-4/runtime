@@ -59,7 +59,7 @@ _NoGC_abort_msg: .asciiz "\n[panic] Heap overflow!!!\n"
 
 # Global functions
 
-.globl main
+.globl __start
 .globl equality_test
 .globl _dispatch_abort
 .globl _case_abort2
@@ -84,7 +84,7 @@ _NoGC_abort_msg: .asciiz "\n[panic] Heap overflow!!!\n"
 #  Standard startup code.                                       #
 #  Invoke the routine main with no arguments.                   #
 #################################################################
-main:
+__start:
   jal _NoGC_Init       # sets gp and s7 (limit)
   la a0, Main_protObj  # create the Main object
   jal Object.copy      # Call copy
