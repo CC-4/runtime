@@ -5,14 +5,14 @@
 #                     \___\___/ \___/|____|                     #
 #                          Runtime                              #
 #                                                               #
-#                          V1.0.0                               #
+#                          V1.0.1                               #
 #                       RISC-V Version                          #
-#                      V-Sim Simulator                          #
+#                      Jupiter Simulator                        #
 #                                                               #
-#                     Andres Castellanos                        #
+#                     Andrés Castellanos                        #
 #                  <andres.cv@galileo.edu>                      #
 #                                                               #
-#   Copyright 2018 Andres Castellanos                           #
+#   Copyright 2018-2019 Andres Castellanos                      #
 #                                                               #
 #   Licensed under the Apache License, Version 2.0              #
 #   (the "License"); you may not use this file except in        #
@@ -48,6 +48,7 @@ _sabort_msg3:   .asciiz "Length to substr too long\n"
 _sabort_msg4:   .asciiz "Length to substr is negative\n"
 _sabort_msg:    .asciiz "Execution aborted.\n"
 _objcopy_msg:   .asciiz "Object.copy: Invalid object size.\n"
+_divzero_msg:   .asciiz "Exception: division by 0...\n"
 
 # Messages for the NoGC garabge collector
 
@@ -63,6 +64,7 @@ _NoGC_abort_msg: .asciiz "\n[panic] Heap overflow!!!\n"
 .globl _dispatch_abort
 .globl _case_abort2
 .globl _case_abort
+.globl _div_by_zero
 .globl Object.copy
 .globl Object.abort
 .globl Object.type_name
@@ -267,6 +269,27 @@ _case_abort:
   ecall
   li a0, 10
   ecall                # Exit
+
+
+#################################################################
+#  Div by Zero Exception                                        #
+#                                                               #
+#  Is called when a division by zero occurs                     #
+#                                                               #
+#  INPUT:                                                       #
+#  - None                                                       #
+#                                                               #
+#  OUTPUT:                                                      #
+#  - None                                                       #
+#                                                               #
+# Does not return!                                              #
+#################################################################
+_div_by_zero:
+  la a1, _divzero_msg
+  li a0, 4
+  ecall
+  li a0, 10
+  ecall     # Exit
 
 
 #################################################################
